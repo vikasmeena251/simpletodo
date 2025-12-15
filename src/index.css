@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-[#0A0A0F] dark:text-slate-100 transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-md font-normal transition-all duration-200 
+           focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 text-sm;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 
+           focus:ring-primary-500 dark:bg-primary-500/90 dark:hover:bg-primary-600
+           dark:focus:ring-offset-[#0A0A0F] hover:scale-105 active:scale-95 transform;
+  }
+  
+  .btn-outline {
+    @apply border border-slate-300 dark:border-slate-700/50 text-slate-700 dark:text-slate-300
+           hover:bg-slate-100 dark:hover:bg-slate-800/50 focus:ring-slate-500
+           dark:focus:ring-offset-[#0A0A0F] backdrop-blur-sm;
+  }
+  
+  .checkbox {
+    @apply h-5 w-5 rounded-full border-2 border-slate-300 dark:border-slate-600/50 
+           flex items-center justify-center transition-all duration-300
+           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500
+           dark:focus:ring-offset-[#0A0A0F] hover:border-primary-500 dark:hover:border-primary-400
+           hover:scale-110 active:scale-90 transform;
+  }
+  
+  .checkbox-checked {
+    @apply border-primary-500 bg-primary-500 dark:border-primary-400/90 dark:bg-primary-400/90;
+  }
+  
+  .priority-low {
+    @apply bg-slate-200/80 dark:bg-slate-700/30 text-slate-700 dark:text-slate-300 backdrop-blur-sm text-xs;
+  }
+  
+  .priority-medium {
+    @apply bg-warning-500/80 text-white backdrop-blur-sm text-xs;
+  }
+  
+  .priority-high {
+    @apply bg-error-500/80 text-white backdrop-blur-sm text-xs;
+  }
+  
+  .input-field {
+    @apply w-full px-3 py-2 border border-slate-300 dark:border-slate-700/50 rounded-md 
+           bg-white dark:bg-slate-800/50 backdrop-blur-sm text-slate-900 dark:text-white 
+           placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 
+           focus:border-primary-500 transition-all duration-200 text-sm
+           dark:focus:ring-offset-[#0A0A0F] hover:border-primary-400 dark:hover:border-primary-500/50;
+  }
+
+  /* Fix for select dropdown in dark mode */
+  select.input-field {
+    @apply dark:bg-slate-800 dark:text-white;
+  }
+
+  select.input-field option {
+    @apply dark:bg-slate-800 dark:text-white;
+  }
+
+  .task-enter {
+    @apply animate-[taskEnter_0.5s_ease-out];
+  }
+
+  .task-complete {
+    @apply animate-[taskComplete_0.6s_ease-out];
+  }
+}
+
+@keyframes taskEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.8);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes taskComplete {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Performance optimizations */
+* {
+  box-sizing: border-box;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 640px) {
+  .container {
+    @apply px-3;
+  }
+  
+  /* Ensure text doesn't overflow on small screens */
+  .break-words {
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+  }
+  
+  /* Improve touch targets on mobile */
+  .btn {
+    @apply min-h-[44px];
+  }
+  
+  .checkbox {
+    @apply min-w-[44px] min-h-[44px];
+  }
+  
+  /* Better spacing on mobile */
+  .input-field {
+    @apply text-base; /* Prevents zoom on iOS */
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
