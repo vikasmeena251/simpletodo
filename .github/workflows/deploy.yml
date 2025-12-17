@@ -2,7 +2,7 @@ name: Deploy SimpleTodo to VPS
 
 on:
   push:
-    branches: [main]
+    branches: ["main"]
 
 jobs:
   deploy:
@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: "18"
           cache: "npm"
 
       - name: Install deps
@@ -24,7 +24,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      # Upload the whole dist directory (cleaner + predictable)
       - name: Upload dist to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -34,7 +33,7 @@ jobs:
           source: "dist"
           target: "/var/www/simpletodo.online/current"
 
-      - name: Post-deploy: permissions + health
+      - name: Post deploy (permissions + verify)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -42,18 +41,5 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-
-            # Make sure folder exists
-            sudo mkdir -p /var/www/simpletodo.online/current
-
-            # Only touch THIS app's folder
-            sudo chown -R www-data:www-data /var/www/simpletodo.online/current/dist
-
-            # Optional: stable path for nginx (recommended)
-            sudo ln -sfn /var/www/simpletodo.online/current/dist /var/www/simpletodo.online/public
-
-            # If you already have nginx serving /var/www/simpletodo.online/public, reload safely
-            sudo nginx -t && sudo systemctl reload nginx || true
-
-            # Quick sanity check
+            ls -la /var/www/simpletodo.online/current
             ls -la /var/www/simpletodo.online/current/dist | head -n 30
