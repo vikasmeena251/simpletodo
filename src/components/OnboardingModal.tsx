@@ -32,9 +32,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
         animate={{ scale: 1, opacity: 1 }}
         className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full p-6"
       >
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
           Welcome to Simple Todo
-        </h2>
+        </h1>
         <p className="text-slate-600 dark:text-slate-400 mb-6">
           Let's personalize your experience. How may we address you?
         </p>

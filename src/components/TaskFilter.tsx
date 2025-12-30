@@ -1,5 +1,6 @@
 import React from 'react';
 import { Filter } from '../types';
+import { Trash2 } from 'lucide-react';
 
 interface TaskFilterProps {
   filter: Filter;
@@ -9,6 +10,8 @@ interface TaskFilterProps {
     active: number;
     completed: number;
     high: number;
+    today: number;
+    upcoming: number;
   };
   onClearCompleted: () => void;
 }
@@ -19,63 +22,71 @@ export const TaskFilter: React.FC<TaskFilterProps> = ({
   tasksCount,
   onClearCompleted,
 }) => {
+  const allFilters: { value: Filter; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'today', label: 'Today' },
+    { value: 'upcoming', label: 'Upcoming' },
+    { value: 'active', label: 'Active' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'high', label: 'High Priority' },
+  ];
+
+  const getFilterCount = (filterId: Filter) => {
+    switch (filterId) {
+      case 'all': return tasksCount.all;
+      case 'active': return tasksCount.active;
+      case 'completed': return tasksCount.completed;
+      case 'high': return tasksCount.high;
+      case 'today': return tasksCount.today;
+      case 'upcoming': return tasksCount.upcoming;
+      default: return 0;
+    }
+  };
+
+  const visibleFilters = allFilters.filter(f => {
+    // Always show core filters
+    if (['all', 'active', 'completed'].includes(f.value)) return true;
+    // Show dynamic filters only if they have items
+    return getFilterCount(f.value) > 0;
+  });
+
   return (
-    <div className="mb-6 bg-white dark:bg-slate-800/50 backdrop-blur-sm p-4 rounded-lg shadow-sm animate-slide-down">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap gap-2">
+    <div className="glass-panel p-2 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-2">
+      <div className="flex p-1 bg-slate-100 dark:bg-slate-950/50 rounded-lg w-full sm:w-auto overflow-x-auto selection-none">
+        {visibleFilters.map((f) => (
           <button
-            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-              filter === 'all'
-                ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-300'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50'
-            }`}
-            onClick={() => onFilterChange('all')}
+            key={f.value}
+            onClick={() => onFilterChange(f.value)}
+            className={`
+              relative px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap
+              ${filter === f.value
+                ? 'bg-white dark:bg-slate-800 text-primary-600 dark:text-primary-400 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+              }
+            `}
           >
-            All ({tasksCount.all})
+            {f.label}
+            {getFilterCount(f.value) > 0 && (
+              <span className={`ml-2 text-[10px] py-0.5 px-1.5 rounded-full ${filter === f.value
+                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+                : 'bg-slate-200 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400'
+                }`}>
+                {getFilterCount(f.value)}
+              </span>
+            )}
           </button>
-          <button
-            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-              filter === 'high'
-                ? 'bg-error-100 dark:bg-error-900/50 text-error-600 dark:text-error-300'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50'
-            }`}
-            onClick={() => onFilterChange('high')}
-          >
-            High ({tasksCount.high})
-          </button>
-          <button
-            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-              filter === 'active'
-                ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-300'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50'
-            }`}
-            onClick={() => onFilterChange('active')}
-          >
-            Active ({tasksCount.active})
-          </button>
-          <button
-            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-              filter === 'completed'
-                ? 'bg-accent-100 dark:bg-accent-900/50 text-accent-600 dark:text-accent-300'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50'
-            }`}
-            onClick={() => onFilterChange('completed')}
-          >
-            Completed ({tasksCount.completed})
-          </button>
-        </div>
-        
-        {tasksCount.completed > 0 && (
-          <div className="flex justify-end">
-            <button
-              className="text-sm text-slate-600 dark:text-slate-400 hover:text-error-600 dark:hover:text-error-500 transition-colors"
-              onClick={onClearCompleted}
-            >
-              Clear completed
-            </button>
-          </div>
-        )}
+        ))}
       </div>
+
+      {tasksCount.completed > 0 && (
+        <button
+          onClick={onClearCompleted}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-colors w-full sm:w-auto justify-center sm:justify-start"
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Clear completed</span>
+        </button>
+      )}
     </div>
   );
 };

@@ -1,23 +1,52 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Filter, Priority, Task, ChecklistItem } from '../types';
+import { Task, Priority, ChecklistItem, Category, Filter, Recurrence } from '../types';
+import { isToday, isUpcoming, isOverdue, getNextRecurrenceDate } from '../utils/date';
 
 export const useTasks = () => {
   const [tasks, setTasks] = useState<Task[]>(() => {
-    const savedTasks = localStorage.getItem('tasks');
-    if (!savedTasks) return [];
-    
-    // Ensure all tasks have required properties
-    return JSON.parse(savedTasks).map((task: Partial<Task>) => ({
-      id: task.id || crypto.randomUUID(),
-      text: task.text || '',
-      completed: task.completed || false,
-      createdAt: task.createdAt || Date.now(),
-      priority: task.priority || 'low',
-      checklist: Array.isArray(task.checklist) ? task.checklist : [],
-      notes: task.notes || '',
-    }));
+    try {
+      const savedTasks = localStorage.getItem('tasks');
+      if (!savedTasks) return [];
+
+      const parsed = JSON.parse(savedTasks);
+      if (!Array.isArray(parsed)) return [];
+
+      return parsed.map((task: Partial<Task>) => ({
+        id: task.id || crypto.randomUUID(),
+        text: task.text || '',
+        completed: task.completed || false,
+        createdAt: task.createdAt || Date.now(),
+        priority: task.priority || 'low',
+        category: task.category || 'personal',
+        checklist: Array.isArray(task.checklist) ? task.checklist : [],
+        notes: task.notes || '',
+        dueDate: task.dueDate,
+        completedAt: task.completedAt,
+        recurrence: task.recurrence,
+      }));
+    } catch (e) {
+      console.error("Failed to parse tasks from localStorage:", e);
+      return [];
+    }
   });
-  
+
+  // Multi-tab synchronization
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'tasks' && e.newValue) {
+        try {
+          const newTasks = JSON.parse(e.newValue);
+          setTasks(newTasks);
+        } catch (err) {
+          console.error("Failed to sync tasks from another tab:", err);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const [userSortOrder, setUserSortOrder] = useState<string[]>(() => {
     const savedOrder = localStorage.getItem('taskOrder');
     return savedOrder ? JSON.parse(savedOrder) : [];
@@ -40,25 +69,25 @@ export const useTasks = () => {
         if (a.completed !== b.completed) {
           return a.completed ? 1 : -1;
         }
-        
+
         // Then sort by priority for non-completed tasks
         if (!a.completed && !b.completed) {
           const priorityOrder = { high: 0, medium: 1, low: 2 };
           const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
           if (priorityDiff !== 0) return priorityDiff;
         }
-        
+
         // Finally sort by creation date
         return b.createdAt - a.createdAt;
       });
     }
-    
+
     return [...tasksToSort].sort((a, b) => {
       // Always keep completed tasks at the bottom
       if (a.completed !== b.completed) {
         return a.completed ? 1 : -1;
       }
-      
+
       const orderMap = new Map(userSortOrder.map((id, index) => [id, index]));
       const orderA = orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER;
       const orderB = orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER;
@@ -78,11 +107,53 @@ export const useTasks = () => {
       case 'high':
         filtered = tasks.filter((task) => task.priority === 'high');
         break;
+      case 'today':
+        filtered = tasks.filter((task) => (task.dueDate && (isToday(task.dueDate) || isOverdue(task.dueDate)) && !task.completed));
+        break;
+      case 'upcoming':
+        filtered = tasks.filter((task) => (task.dueDate && isUpcoming(task.dueDate) && !task.completed));
+        break;
     }
     return sortTasks(filtered);
   }, [tasks, filter, sortTasks]);
 
-  const addTask = useCallback((text: string, priority: Priority = 'low') => {
+
+
+  const toggleTask = useCallback((id: string) => {
+    setTasks((prevTasks) => {
+      const taskToToggle = prevTasks.find(t => t.id === id);
+
+      // Handle recurrence when marking as completed
+      if (taskToToggle && !taskToToggle.completed && taskToToggle.recurrence && taskToToggle.dueDate) {
+        const nextDate = getNextRecurrenceDate(taskToToggle.dueDate, taskToToggle.recurrence);
+
+        const nextTask: Task = {
+          ...taskToToggle,
+          id: crypto.randomUUID(),
+          completed: false,
+          createdAt: Date.now(),
+          dueDate: nextDate,
+          completedAt: undefined, // Ensure new task doesn't have completedAt
+          // Recurrence continues to the next task
+        };
+
+        // Return tasks with original marked completed AND new next task
+        return sortTasks([
+          ...prevTasks.map(task =>
+            task.id === id ? { ...task, completed: !task.completed, completedAt: !task.completed ? Date.now() : undefined } : task
+          ),
+          nextTask
+        ]);
+      }
+
+      const newTasks = prevTasks.map((task) =>
+        task.id === id ? { ...task, completed: !task.completed, completedAt: !task.completed ? Date.now() : undefined } : task
+      );
+      return sortTasks(newTasks);
+    });
+  }, [sortTasks]);
+
+  const addTask = useCallback((text: string, priority: Priority = 'low', category: Category = 'personal', dueDate?: number, recurrence?: Recurrence) => {
     if (text.trim()) {
       const newTask: Task = {
         id: crypto.randomUUID(),
@@ -90,23 +161,14 @@ export const useTasks = () => {
         completed: false,
         createdAt: Date.now(),
         priority,
+        category,
         checklist: [],
         notes: '',
+        dueDate,
+        recurrence,
       };
-      setTasks((prevTasks) => {
-        const newTasks = [...prevTasks, newTask];
-        return sortTasks(newTasks);
-      });
+      setTasks((prevTasks) => sortTasks([...prevTasks, newTask]));
     }
-  }, [sortTasks]);
-
-  const toggleTask = useCallback((id: string) => {
-    setTasks((prevTasks) => {
-      const newTasks = prevTasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      );
-      return sortTasks(newTasks);
-    });
   }, [sortTasks]);
 
   const deleteTask = useCallback((id: string) => {
@@ -115,17 +177,20 @@ export const useTasks = () => {
   }, []);
 
   const updateTask = useCallback(
-    (id: string, text: string, priority: Priority, checklist: ChecklistItem[], notes?: string) => {
+    (id: string, text: string, priority: Priority, category: Category, checklist: ChecklistItem[], notes?: string, dueDate?: number, recurrence?: Recurrence) => {
       setTasks((prevTasks) => {
         const newTasks = prevTasks.map((task) =>
           task.id === id
             ? {
-                ...task,
-                text: text || task.text,
-                priority: priority || task.priority,
-                checklist,
-                notes,
-              }
+              ...task,
+              text: text || task.text,
+              priority: priority || task.priority,
+              category: category || task.category,
+              checklist,
+              notes,
+              dueDate: dueDate !== undefined ? dueDate : task.dueDate,
+              recurrence: recurrence !== undefined ? recurrence : task.recurrence,
+            }
             : task
         );
         return sortTasks(newTasks);
@@ -144,7 +209,7 @@ export const useTasks = () => {
       const remainingTasks = prevTasks.filter((task) => !task.completed);
       return sortTasks(remainingTasks);
     });
-    setUserSortOrder((prev) => 
+    setUserSortOrder((prev) =>
       prev.filter((id) => tasks.find(t => t.id === id && !t.completed))
     );
   }, [tasks, sortTasks]);
