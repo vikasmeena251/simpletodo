@@ -11,7 +11,13 @@ import { TaskFilter } from './components/TaskFilter';
 import { EmptyState } from './components/EmptyState';
 import { OnboardingModal } from './components/OnboardingModal';
 import { WelcomeOverlay } from './components/WelcomeOverlay';
+import { ShareModal } from './components/ShareModal';
+import { ImportModal } from './components/ImportModal';
+import { Toast } from './components/Toast';
 import { useTasks } from './hooks/useTasks';
+import { encodeTasks, decodeTasks, clearShareHash, getShareUrl, generateFingerprint } from './utils/share';
+import { Task } from './types';
+import { useEffect } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { UserPreferences } from './types';
 import { BottomNav } from './components/BottomNav';
@@ -39,7 +45,89 @@ function App() {
     updateTask,
     reorderTasks,
     clearCompleted,
+    importTasks,
   } = useTasks();
+
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importTasksData, setImportTasksData] = useState<Task[]>([]);
+  const [importTimestamp, setImportTimestamp] = useState<number>();
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const [toast, setToast] = useState<{ message: string; visible: boolean; onUndo?: () => void }>({
+    message: '',
+    visible: false,
+  });
+
+  const [lastStateBeforeImport, setLastStateBeforeImport] = useState<Task[] | null>(null);
+
+  const [importedFingerprints, setImportedFingerprints] = useState<string[]>(() => {
+    const saved = localStorage.getItem('importedFingerprints');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [currentImportFingerprint, setCurrentImportFingerprint] = useState<string | null>(null);
+
+  // Detect Import Payload in Hash
+  useEffect(() => {
+    const checkHash = async () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#import=')) {
+        const payload = hash.replace('#import=', '');
+        setIsImportModalOpen(true);
+        setImportError(null);
+        try {
+          const { tasks: decodedTasks, timestamp } = await decodeTasks(payload);
+          setImportTasksData(decodedTasks);
+          setImportTimestamp(timestamp);
+          const fingerprint = await generateFingerprint(decodedTasks);
+          setCurrentImportFingerprint(fingerprint);
+        } catch (err) {
+          setImportError(err instanceof Error ? err.message : 'Invalid import link');
+        }
+      }
+    };
+
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, []);
+
+  const handleShare = async () => {
+    try {
+      const encoded = await encodeTasks(allTasks);
+      setShareUrl(getShareUrl(encoded));
+      setIsShareModalOpen(true);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to generate share link');
+    }
+  };
+
+  const handleImport = (strategy: 'replace' | 'merge') => {
+    setLastStateBeforeImport([...allTasks]);
+    importTasks(importTasksData, strategy);
+    setIsImportModalOpen(false);
+    clearShareHash();
+
+    // Save fingerprint
+    if (currentImportFingerprint) {
+      const newFingerprints = [...new Set([...importedFingerprints, currentImportFingerprint])];
+      setImportedFingerprints(newFingerprints);
+      localStorage.setItem('importedFingerprints', JSON.stringify(newFingerprints));
+    }
+
+    setToast({
+      message: `${strategy === 'replace' ? 'Replaced with' : 'Imported'} ${importTasksData.length} tasks successfully!`,
+      visible: true,
+      onUndo: () => {
+        if (lastStateBeforeImport) {
+          importTasks(lastStateBeforeImport, 'replace');
+          setToast({ message: 'Import undone', visible: true });
+        }
+      }
+    });
+  };
 
   const tasksCount = {
     all: allTasks.length,
@@ -108,6 +196,7 @@ function App() {
               userName={userPreferences.name}
               currentView={activeView}
               onViewChange={setActiveView}
+              onShare={handleShare}
             />
 
             <main className={`flex-1 w-full mx-auto px-4 py-6 sm:py-12 pb-24 md:pb-12 transition-all duration-500 ease-spring ${activeView === 'tasks' ? 'max-w-xl md:max-w-2xl' : 'max-w-5xl'
@@ -198,6 +287,35 @@ function App() {
                 Simple Todo &copy; {new Date().getFullYear()}
               </p>
             </footer>
+
+            <ShareModal
+              isOpen={isShareModalOpen}
+              onClose={() => setIsShareModalOpen(false)}
+              shareUrl={shareUrl}
+              isEmpty={allTasks.length === 0}
+            />
+
+            <ImportModal
+              isOpen={isImportModalOpen}
+              onClose={() => {
+                setIsImportModalOpen(false);
+                clearShareHash();
+              }}
+              tasks={importTasksData}
+              error={importError}
+              timestamp={importTimestamp}
+              onImport={handleImport}
+              isAlreadyImported={!!currentImportFingerprint && importedFingerprints.includes(currentImportFingerprint)}
+              isUpdate={importedFingerprints.length > 0 && !!currentImportFingerprint && !importedFingerprints.includes(currentImportFingerprint)}
+              isLocalEmpty={allTasks.length === 0}
+            />
+
+            <Toast
+              isVisible={toast.visible}
+              message={toast.message}
+              onUndo={toast.onUndo}
+              onDismiss={() => setToast(prev => ({ ...prev, visible: false }))}
+            />
           </div>
         </ThemeProvider>
       </HelmetProvider>

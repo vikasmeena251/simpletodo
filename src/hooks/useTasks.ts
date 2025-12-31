@@ -23,6 +23,7 @@ export const useTasks = () => {
         dueDate: task.dueDate,
         completedAt: task.completedAt,
         recurrence: task.recurrence,
+        updatedAt: task.updatedAt || task.createdAt || Date.now(),
       }));
     } catch (e) {
       console.error("Failed to parse tasks from localStorage:", e);
@@ -140,14 +141,14 @@ export const useTasks = () => {
         // Return tasks with original marked completed AND new next task
         return sortTasks([
           ...prevTasks.map(task =>
-            task.id === id ? { ...task, completed: !task.completed, completedAt: !task.completed ? Date.now() : undefined } : task
+            task.id === id ? { ...task, completed: !task.completed, completedAt: !task.completed ? Date.now() : undefined, updatedAt: Date.now() } : task
           ),
           nextTask
         ]);
       }
 
       const newTasks = prevTasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed, completedAt: !task.completed ? Date.now() : undefined } : task
+        task.id === id ? { ...task, completed: !task.completed, completedAt: !task.completed ? Date.now() : undefined, updatedAt: Date.now() } : task
       );
       return sortTasks(newTasks);
     });
@@ -166,6 +167,7 @@ export const useTasks = () => {
         notes: '',
         dueDate,
         recurrence,
+        updatedAt: Date.now(),
       };
       setTasks((prevTasks) => sortTasks([...prevTasks, newTask]));
     }
@@ -190,6 +192,7 @@ export const useTasks = () => {
               notes,
               dueDate: dueDate !== undefined ? dueDate : task.dueDate,
               recurrence: recurrence !== undefined ? recurrence : task.recurrence,
+              updatedAt: Date.now(),
             }
             : task
         );
@@ -214,6 +217,28 @@ export const useTasks = () => {
     );
   }, [tasks, sortTasks]);
 
+  const importTasks = useCallback((newTasks: Task[], strategy: 'replace' | 'merge') => {
+    setTasks(prevTasks => {
+      if (strategy === 'replace') {
+        return sortTasks(newTasks);
+      }
+
+      const merged = [...prevTasks];
+      newTasks.forEach(newTask => {
+        const existingIndex = merged.findIndex(t => t.id === newTask.id);
+        if (existingIndex !== -1) {
+          // Conflict: compare updatedAt
+          if (newTask.updatedAt > merged[existingIndex].updatedAt) {
+            merged[existingIndex] = newTask;
+          }
+        } else {
+          merged.push(newTask);
+        }
+      });
+      return sortTasks(merged);
+    });
+  }, [sortTasks]);
+
   return {
     tasks: filteredTasks(),
     allTasks: tasks,
@@ -225,5 +250,6 @@ export const useTasks = () => {
     updateTask,
     reorderTasks,
     clearCompleted,
+    importTasks,
   };
 };

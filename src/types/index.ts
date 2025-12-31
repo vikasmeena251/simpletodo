@@ -29,6 +29,7 @@ export interface Task {
   dueDate?: number;
   recurrence?: Recurrence;
   completedAt?: number;
+  updatedAt: number;
 }
 
 export type Recurrence = 'daily' | 'weekly' | 'monthly' | 'yearly';

@@ -1,13 +1,14 @@
-import { Moon, Sun, Sparkles, LayoutList, BarChart3, Calendar } from 'lucide-react';
+import { Moon, Sun, Sparkles, LayoutList, BarChart3, Calendar, Share2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 interface HeaderProps {
   userName?: string;
   currentView: 'tasks' | 'analytics' | 'calendar';
   onViewChange: (view: 'tasks' | 'analytics' | 'calendar') => void;
+  onShare: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ userName, currentView, onViewChange }) => {
+export const Header: React.FC<HeaderProps> = ({ userName, currentView, onViewChange, onShare }) => {
   const { isDarkMode, toggleTheme } = useTheme();
 
   return (
@@ -63,6 +64,16 @@ export const Header: React.FC<HeaderProps> = ({ userName, currentView, onViewCha
           </div>
 
           <div className="hidden md:block w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1 shrink-0"></div>
+
+          <button
+            onClick={onShare}
+            className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 active:scale-95"
+            aria-label="Share tasks"
+          >
+            <Share2 className="w-5 h-5" />
+          </button>
+
+          <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1 shrink-0"></div>
 
           <button
             onClick={toggleTheme}
