@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Trash2, Edit, Save, GripVertical, Plus, List, AlignLeft, Calendar, Clock, Repeat } from 'lucide-react';
+import { Check, Trash2, Edit, Save, GripVertical, Plus, List, AlignLeft, Calendar, Clock, Repeat, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Task, Priority, ChecklistItem, Category, CATEGORIES, Recurrence } from '../types';
 import { useSortable } from '@dnd-kit/sortable';
@@ -45,7 +45,7 @@ export const TaskItem = React.forwardRef<HTMLLIElement, TaskItemProps>(({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    zIndex: isDragging || isOverlay || showDatePicker ? 50 : 1,
+    zIndex: (isDragging || isOverlay || showDatePicker) ? 60 : 1,
   };
 
   // Merge refs
@@ -112,12 +112,13 @@ export const TaskItem = React.forwardRef<HTMLLIElement, TaskItemProps>(({
       ref={setRef}
       style={style}
       layout
+      whileTap={{ scale: 0.995 }}
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{
         opacity: 1,
         scale: isDragging ? 1.02 : 1,
         y: 0,
-        zIndex: isDragging ? 50 : 0
+        zIndex: (isDragging || isOverlay || showDatePicker) ? 60 : 0
       }}
       exit={{ opacity: 0, scale: 0.9, height: 0 }}
       className={`
@@ -152,13 +153,6 @@ export const TaskItem = React.forwardRef<HTMLLIElement, TaskItemProps>(({
         className="relative bg-inherit z-10"
       >
         <div className="flex items-start p-3 gap-3 bg-white/50 dark:bg-[#1E293B]/50 backdrop-blur-xl rounded-xl">
-          <div
-            {...listeners}
-            {...attributes}
-            className="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-indigo-500 dark:hover:text-indigo-400 mt-1.5 shrink-0 transition-colors touch-none"
-          >
-            <GripVertical className="h-4 w-4" />
-          </div>
 
           {isEditing ? (
             <form onSubmit={handleSave} className="flex-1 space-y-3">
@@ -245,13 +239,23 @@ export const TaskItem = React.forwardRef<HTMLLIElement, TaskItemProps>(({
                 </div>
               </div>
 
-              {/* Drag Handle always visible but subtle */}
-              <div
-                {...listeners}
-                {...attributes}
-                className="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-indigo-500 dark:hover:text-indigo-400 p-2 -mr-2 shrink-0 transition-colors touch-none"
-              >
-                <GripVertical className="h-4 w-4" />
+              {/* Interaction Indicators */}
+              <div className="flex items-center gap-1 shrink-0">
+                <motion.div
+                  animate={{ rotate: isExpanded ? 180 : 0 }}
+                  transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                  className="text-slate-300 dark:text-slate-500"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </motion.div>
+
+                <div
+                  {...listeners}
+                  {...attributes}
+                  className="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-indigo-500 dark:hover:text-indigo-400 p-2 -mr-2 transition-colors touch-none"
+                >
+                  <GripVertical className="h-4 w-4" />
+                </div>
               </div>
             </>
           )}

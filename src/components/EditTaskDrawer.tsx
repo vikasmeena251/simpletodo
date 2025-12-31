@@ -17,7 +17,7 @@ export const EditTaskDrawer: React.FC<EditTaskDrawerProps> = ({ isOpen, onClose,
     const [text, setText] = useState(task.text);
     const [priority, setPriority] = useState<Priority>(task.priority);
     const [category, setCategory] = useState<Category>(task.category);
-    const [dueDate, setDueDate] = useState<Date | undefined>(task.dueDate);
+    const [dueDate, setDueDate] = useState<number | undefined>(task.dueDate);
     const [showDatePicker, setShowDatePicker] = useState(false);
 
     // Reset state when task changes or drawer opens
@@ -103,10 +103,10 @@ export const EditTaskDrawer: React.FC<EditTaskDrawerProps> = ({ isOpen, onClose,
                                             key={p}
                                             onClick={() => setPriority(p)}
                                             className={`flex-1 py-3 px-2 rounded-xl text-sm font-bold capitalize transition-all border-2 ${priority === p
-                                                    ? p === 'high' ? 'bg-rose-50 border-rose-500 text-rose-600 dark:bg-rose-900/20'
-                                                        : p === 'medium' ? 'bg-amber-50 border-amber-500 text-amber-600 dark:bg-amber-900/20'
-                                                            : 'bg-emerald-50 border-emerald-500 text-emerald-600 dark:bg-emerald-900/20'
-                                                    : 'bg-white dark:bg-slate-800 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                                ? p === 'high' ? 'bg-rose-50 border-rose-500 text-rose-600 dark:bg-rose-900/20'
+                                                    : p === 'medium' ? 'bg-amber-50 border-amber-500 text-amber-600 dark:bg-amber-900/20'
+                                                        : 'bg-emerald-50 border-emerald-500 text-emerald-600 dark:bg-emerald-900/20'
+                                                : 'bg-white dark:bg-slate-800 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
                                                 }`}
                                         >
                                             {p}
@@ -126,8 +126,8 @@ export const EditTaskDrawer: React.FC<EditTaskDrawerProps> = ({ isOpen, onClose,
                                             key={key}
                                             onClick={() => setCategory(key as Category)}
                                             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border-2 ${category === key
-                                                    ? `bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 text-indigo-600 dark:text-indigo-300`
-                                                    : 'bg-white dark:bg-slate-800 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                                ? `bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 text-indigo-600 dark:text-indigo-300`
+                                                : 'bg-white dark:bg-slate-800 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
                                                 }`}
                                         >
                                             {config.label}
@@ -144,8 +144,8 @@ export const EditTaskDrawer: React.FC<EditTaskDrawerProps> = ({ isOpen, onClose,
                                 <button
                                     onClick={() => setShowDatePicker(!showDatePicker)}
                                     className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all ${dueDate
-                                            ? 'bg-indigo-50 border-indigo-500 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300'
-                                            : 'bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-800 text-slate-500'
+                                        ? 'bg-indigo-50 border-indigo-500 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300'
+                                        : 'bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-800 text-slate-500'
                                         }`}
                                 >
                                     <span className="font-medium">
@@ -160,7 +160,7 @@ export const EditTaskDrawer: React.FC<EditTaskDrawerProps> = ({ isOpen, onClose,
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
-                                            className="overflow-hidden"
+                                            className=""
                                         >
                                             <div className="pt-2">
                                                 <DatePicker
